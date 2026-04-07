@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a3a5c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MendozaMapa">
+<title>MendozaMapa</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', sans-serif;
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+:root {
+  --azul: #1a3a5c;
+  --azul2: #2563a8;
+  --verde: #16a34a;
+  --gris: #64748b;
+  --card: #ffffff;
+  --bg: #f1f5f9;
+  --borde: #e2e8f0;
+  --texto: #0f172a;
+}
+
+body.dark {
+  --card: #1e293b;
+  --bg: #0f172a;
+  --borde: #334155;
+  --texto: #f1f5f9;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+}
+
+/* HEADER */
+#header {
+  background: #1a3a5c;
+  color: #fff;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.titulo h1 { font-size: 17px; font-weight: 700; }
+.titulo p { font-size: 11px; opacity: 0.7; }
+.titulo { flex: 1; }
+.hbtn {
+  background: rgba(255,255,255,0.2);
+  border: none; color: #fff;
+  border-radius: 10px;
+  width: 38px; height: 38px;
+  font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* BUSCADOR */
+#searchbar {
+  background: var(--card);
+  border-bottom: 1px solid var(--borde);
+  padding: 8px 12px;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+#searchbar input {
+  flex: 1; padding: 10px 14px;
+  border: 2px solid var(--borde);
+  border-radius: 12px; font-size: 14px;
+  background: var(--bg); color: var(--texto);
+  outline: none;
+}
+#searchbar input:focus { border-color: #2563a8; }
+#btnBuscar {
+  background: #2563a8; color: #fff;
+  border: none; border-radius: 12px;
+  padding: 0 18px; font-size: 14px;
+  font-weight: 600; cursor: pointer;
+}
+
+/* MAPA */
+#map {
+  flex: 1;
+  width: 100%;
+  position: relative;
+}
+
+/* TABS */
+#tabs {
+  background: var(--card);
+  border-top: 1px solid var(--borde);
+  display: flex;
+  flex-shrink: 0;
+}
+.tab {
+  flex: 1; background: none; border: none;
+  padding: 10px 4px 12px;
+  font-size: 10px; color: var(--gris);
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 3px;
+}
+.tab .ti { font-size: 22px; }
+.tab.on { color: #2563a8; font-weight: 700; }
+.badge {
+  background: #2563a8; color: #fff;
+  border-radius: 20px; font-size: 10px;
+  font-weight: 700; padding: 1px 7px; margin-left: 3px;
+}
+
+/* FABS */
+#fabs {
+  position: fixed;
+  right: 14px; bottom: 80px;
+  z-index: 400;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.fab {
+  width: 52px; height: 52px;
+  border-radius: 50%; border: none; color: #fff;
+  font-size: 22px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.fab-loc { background: #2563a8; }
+.fab-add { background: #16a34a; }
+
+/* RESULTADOS */
+#resultados {
+  position: fixed;
+  top: 115px; left: 12px; right: 12px;
+  background: var(--card);
+  border-radius: 14px;
+  border: 1px solid var(--borde);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  z-index: 600;
+  max-height: 50vh; overflow-y: auto;
+  display: none;
+}
+.ritem {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--borde);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+}
+.ritem:last-child { border-bottom: none; }
+.rn { font-weight: 600; font-size: 14px; color: var(--texto); }
+.rs { font-size: 11px; color: var(--gris); }
+
+/* OVERLAY + PANEL */
+#overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 500; display: none;
+}
+#panel {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--card);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -4px 32px rgba(0,0,0,0.2);
+  z-index: 550;
+  max-height: 82vh; overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+#panel.open { transform: translateY(0); }
+.phandle { width: 40px; height: 4px; background: var(--borde); border-radius: 4px; margin: 10px auto 0; }
+.pheader {
+  padding: 10px 16px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--borde);
+  position: sticky; top: 0; background: var(--card); z-index: 1;
+}
+.ptitle { font-size: 16px; font-weight: 700; color: var(--texto); }
+.pclose { background: var(--bg); border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 16px; cursor: pointer; color: var(--gris); }
+.pbody { padding: 14px 16px 20px; }
+
+/* FORM */
+.flabel { font-size: 12px; font-weight: 700; color: var(--gris); margin-bottom: 6px; display: block; margin-top: 4px; }
+.finput {
+  width: 100%; padding: 12px 14px;
+  border: 2px solid var(--borde);
+  border-radius: 12px; font-size: 15px;
+  background: var(--bg); color: var(--texto);
+  outline: none; margin-bottom: 14px;
+}
+.finput:focus { border-color: #2563a8; }
+.cats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 16px; }
+.copt {
+  padding: 10px 4px; border-radius: 10px;
+  border: 2px solid var(--borde);
+  text-align: center; cursor: pointer;
+  font-size: 11px; font-weight: 600;
+  background: var(--bg); color: var(--texto);
+}
+.copt .ce { font-size: 22px; display: block; margin-bottom: 2px; }
+.copt.sel { background: #2563a8; border-color: #2563a8; color: #fff; }
+.btnguardar {
+  width: 100%; padding: 14px;
+  background: #16a34a; color: #fff;
+  border: none; border-radius: 14px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+}
+
+/* LISTA */
+.chips {
+  display: flex; gap: 6px; overflow-x: auto;
+  padding: 10px 0 10px; scrollbar-width: none;
+  border-bottom: 1px solid var(--borde); margin-bottom: 10px;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  background: var(--bg); border: 1.5px solid var(--borde);
+  border-radius: 20px; padding: 5px 12px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; color: var(--texto);
+  flex-shrink: 0;
+}
+.chip.on { background: #2563a8; border-color: #2563a8; color: #fff; }
+.litem {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px; border-radius: 12px; margin-bottom: 6px;
+  border: 1px solid var(--borde); background: var(--bg); cursor: pointer;
+}
+.ldot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+.linfo { flex: 1; min-width: 0; }
+.ln { font-weight: 600; font-size: 14px; color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lc { font-size: 11px; color: var(--gris); }
+.lbtn { border: none; border-radius: 8px; padding: 7px 10px; font-size: 13px; font-weight: 600; cursor: pointer; margin-left: 4px; }
+.lnav { background: #2563a8; color: #fff; }
+.ldel { background: #fee2e2; color: #dc2626; }
+.empty { text-align: center; padding: 32px; color: var(--gris); }
+.empty .ei { font-size: 48px; margin-bottom: 10px; }
+
+/* POPUP */
+.ppop { font-family: 'Segoe UI', sans-serif; min-width: 160px; }
+.ppop b { display: block; font-size: 14px; margin-bottom: 2px; }
+.ppop small { color: #64748b; font-size: 11px; }
+.ppop-btns { display: flex; gap: 6px; margin-top: 8px; }
+.ppop-btn { flex:1; padding:8px 4px; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; }
+.pnav { background:#2563a8; color:#fff; }
+.pdel { background:#fee2e2; color:#dc2626; }
+
+/* TOAST */
+#toast {
+  position: fixed; bottom: 85px; left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  background: #1e293b; color: #fff;
+  border-radius: 12px; padding: 10px 20px;
+  font-size: 13px; z-index: 9999;
+  opacity: 0; transition: all 0.3s;
+  pointer-events: none; white-space: nowrap;
+}
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+.leaflet-control-zoom { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="header">
+    <span style="font-size:24px">🗺️</span>
+    <div class="titulo">
+      <h1>MendozaMapa</h1>
+      <p>Provincia de Mendoza</p>
+    </div>
+    <button class="hbtn" onclick="toggleDark()">🌙</button>
+    <button class="hbtn" onclick="exportar()">💾</button>
+  </div>
+
+  <div id="searchbar">
+    <input type="text" id="SI" placeholder="Buscar lugar o dirección..."
+      autocomplete="off"
+      oninput="onInput(this.value)"
+      onkeydown="if(event.key==='Enter')buscarDir()">
+    <button id="btnBuscar" onclick="buscarDir()">Buscar</button>
+  </div>
+
+  <div id="map"></div>
+
+  <div id="tabs">
+    <button class="tab on" id="t-mapa" onclick="showTab('mapa')">
+      <span class="ti">🗺️</span>Mapa
+    </button>
+    <button class="tab" id="t-lugares" onclick="showTab('lugares')">
+      <span class="ti">📌</span>Lugares<span class="badge" id="badge">0</span>
+    </button>
+    <button class="tab" id="t-import" onclick="importar()">
+      <span class="ti">📂</span>Importar
+    </button>
+    <button class="tab" id="t-info" onclick="showInfo()">
+      <span class="ti">ℹ️</span>Info
+    </button>
+  </div>
+</div>
+
+<div id="fabs">
+  <button class="fab fab-loc" onclick="miUbicacion()">📍</button>
+  <button class="fab fab-add" onclick="agregarAqui()">➕</button>
+</div>
+
+<div id="resultados"></div>
+<div id="overlay" onclick="cerrar()"></div>
+
+<div id="panel">
+  <div class="phandle"></div>
+  <div class="pheader">
+    <span class="ptitle" id="pTitulo">Panel</span>
+    <button class="pclose" onclick="cerrar()">✕</button>
+  </div>
+  <div class="pbody" id="pBody"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var lugares = JSON.parse(localStorage.getItem('mm_v2') || '[]');
+var dark = localStorage.getItem('mm_dark') === '1';
+var nuevoLat = null, nuevoLng = null;
+var catSel = 'Otro';
+var filtro = 'todos';
+var map = null;
+var miMark = null;
+var marks = {};
+
+var COLS = {Casa:'#2563a8',Trabajo:'#7c3aed',Negocio:'#ea580c',Amigo:'#16a34a',Favorito:'#ca8a04',Otro:'#64748b'};
+
+if (dark) document.body.classList.add('dark');
+
+function toggleDark() {
+  dark = !dark;
+  document.body.classList.toggle('dark', dark);
+  localStorage.setItem('mm_dark', dark ? '1' : '0');
+}
+
+function initMap() {
+  map = L.map('map', {
+    center: [-34.6, -68.5],
+    zoom: 7,
+    zoomControl: false,
+    attributionControl: false
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  L.control.attribution({position:'bottomleft', prefix:'© OSM'}).addTo(map);
+
+  map.on('click', function(e) {
+    nuevoLat = e.latlng.lat;
+    nuevoLng = e.latlng.lng;
+    abrirFormGuardar();
+  });
+
+  setTimeout(function() { map.invalidateSize(); }, 200);
+  setTimeout(function() { map.invalidateSize(); }, 500);
+
+  cargarMarkers();
+  actualizarBadge();
+}
+
+function miUbicacion() {
+  toast('📍 Buscando ubicación...');
+  navigator.geolocation.getCurrentPosition(
+    function(p) {
+      var lat = p.coords.latitude, lng = p.coords.longitude;
+      map.setView([lat,lng], 16);
+      if (miMark) miMark.remove();
+      var ico = L.divIcon({
+        className:'',
+        html:'<div style="width:18px;height:18px;background:#2563a8;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 5px rgba(37,99,168,0.25)"></div>',
+        iconSize:[18,18], iconAnchor:[9,9]
+      });
+      miMark = L.marker([lat,lng],{icon:ico}).addTo(map);
+      miMark.bindPopup('<b>📍 Estás aquí</b>').openPopup();
+      nuevoLat = lat; nuevoLng = lng;
+      toast('✅ Ubicación encontrada');
+    },
+    function() { toast('❌ No se pudo obtener ubicación'); },
+    {enableHighAccuracy:true, timeout:10000}
+  );
+}
+
+function agregarAqui() {
+  if (nuevoLat) { abrirFormGuardar(); return; }
+  navigator.geolocation.getCurrentPosition(
+    function(p) { nuevoLat=p.coords.latitude; nuevoLng=p.coords.longitude; abrirFormGuardar(); },
+    function() { toast('📌 Tocá el mapa para elegir un punto'); }
+  );
+}
+
+function abrirFormGuardar() {
+  catSel = 'Otro';
+  document.getElementById('pTitulo').textContent = '➕ Guardar Lugar';
+  document.getElementById('pBody').innerHTML =
+    '<label class="flabel">NOMBRE DEL LUGAR</label>' +
+    '<input class="finput" type="text" id="FN" placeholder="Ej: Casa de mamá, Carnicería..." maxlength="60">' +
+    '<label class="flabel">CATEGORÍA</label>' +
+    '<div class="cats">' +
+      cb('Casa','🏠')+cb('Trabajo','💼')+cb('Negocio','🏪')+
+      cb('Amigo','👤')+cb('Favorito','⭐')+cb('Otro','📍') +
+    '</div>' +
+    '<button class="btnguardar" onclick="guardar()">✅ Guardar en el Mapa</button>';
+  abrirPanel();
+  setTimeout(function(){ var fn=document.getElementById('FN'); if(fn) fn.focus(); }, 400);
+}
+
+function cb(cat, emoji) {
+  return '<div class="copt" id="c_'+cat+'" onclick="selCat(\''+cat+'\')"><span class="ce">'+emoji+'</span>'+cat+'</div>';
+}
+
+function selCat(cat) {
+  catSel = cat;
+  document.querySelectorAll('.copt').forEach(function(el){ el.classList.remove('sel'); });
+  var el = document.getElementById('c_'+cat);
+  if (el) el.classList.add('sel');
+}
+
+function guardar() {
+  var fn = document.getElementById('FN');
+  var nombre = fn ? fn.value.trim() : '';
+  if (!nombre) { toast('⚠️ Escribí un nombre'); return; }
+  if (!nuevoLat) { toast('⚠️ Tocá el mapa primero'); return; }
+  var l = {id:Date.now(), nombre:nombre, cat:catSel, lat:nuevoLat, lng:nuevoLng, fecha:new Date().toLocaleDateString('es-AR')};
+  lugares.unshift(l);
+  save();
+  addMarker(l);
+  cerrar();
+  toast('✅ '+nombre+' guardado!');
+  actualizarBadge();
+}
+
+function addMarker(l) {
+  var color = COLS[l.cat] || '#64748b';
+  var ico = L.divIcon({
+    className:'',
+    html:'<div style="width:16px;height:16px;background:'+color+';border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.35)"></div>',
+    iconSize:[16,16], iconAnchor:[8,8]
+  });
+  var m = L.marker([l.lat,l.lng],{icon:ico}).addTo(map);
+  m.bindPopup(
+    '<div class="ppop"><b>'+l.nombre+'</b><small>'+l.cat+' · '+l.fecha+'</small>' +
+    '<div class="ppop-btns">' +
+    '<button class="ppop-btn pnav" onclick="navegar('+l.lat+','+l.lng+')">🧭 Cómo llegar</button>' +
+    '<button class="ppop-btn pdel" onclick="eliminar('+l.id+')">🗑️</button>' +
+    '</div></div>'
+  );
+  marks[l.id] = m;
+}
+
+function cargarMarkers() {
+  lugares.forEach(function(l){ addMarker(l); });
+}
+
+function navegar(lat,lng) {
+  window.open('https://www.google.com/maps/dir/?api=1&destination='+lat+','+lng+'&travelmode=driving','_blank');
+}
+
+function eliminar(id) {
+  if (!confirm('¿Eliminar este lugar?')) return;
+  lugares = lugares.filter(function(l){ return l.id!==id; });
+  save();
+  if (marks[id]) { marks[id].remove(); delete marks[id]; }
+  map.closePopup();
+  actualizarBadge();
+  toast('🗑️ Lugar eliminado');
+}
+
+function onInput(val) {
+  if (!val || val.length<2) { hideRes(); return; }
+  var q = val.toLowerCase();
+  var res = lugares.filter(function(l){ return l.nombre.toLowerCase().indexOf(q)>=0; });
+  var el = document.getElementById('resultados');
+  if (!res.length) {
+    el.innerHTML='<div class="ritem" style="color:#64748b;font-size:13px;cursor:default">Sin resultados guardados. Presioná Buscar para buscar en el mapa.</div>';
+  } else {
+    el.innerHTML = res.map(function(l){
+      var color=COLS[l.cat]||'#64748b';
+      return '<div class="ritem" onclick="irA('+l.id+')"><span style="color:'+color+';font-size:18px">📍</span><div><div class="rn">'+l.nombre+'</div><div class="rs">'+l.cat+'</div></div></div>';
+    }).join('');
+  }
+  el.style.display='block';
+}
+
+function buscarDir() {
+  var q = (document.getElementById('SI').value||'').trim();
+  if (!q) return;
+  var ql = q.toLowerCase();
+  var local = null;
+  for (var i=0;i<lugares.length;i++) { if (lugares[i].nombre.toLowerCase().indexOf(ql)>=0){ local=lugares[i]; break; } }
+  if (local) { irA(local.id); document.getElementById('SI').value=''; hideRes(); return; }
+  var el = document.getElementById('resultados');
+  el.innerHTML='<div class="ritem" style="color:#64748b;font-size:13px;cursor:default">🔍 Buscando en Mendoza...</div>';
+  el.style.display='block';
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q+', Mendoza, Argentina')+'&limit=5&countrycodes=ar')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(!data.length){el.innerHTML='<div class="ritem" style="color:#64748b;font-size:13px;cursor:default">Sin resultados.</div>';return;}
+      el.innerHTML=data.map(function(item){
+        var parts=item.display_name.split(',');
+        return '<div class="ritem" onclick="irACoord('+item.lat+','+item.lon+',\''+parts[0].replace(/'/g,"\\'")+'\')"><span style="font-size:18px">🔍</span><div><div class="rn">'+parts[0]+'</div><div class="rs">'+(parts[1]||'')+(parts[2]||'')+'</div></div></div>';
+      }).join('');
+    })
+    .catch(function(){el.innerHTML='<div class="ritem" style="color:#64748b;font-size:13px;cursor:default">Sin conexión. Solo se pueden buscar lugares guardados.</div>';});
+}
+
+function irA(id) {
+  var l=null; for(var i=0;i<lugares.length;i++){if(lugares[i].id===id){l=lugares[i];break;}}
+  if(!l) return;
+  map.setView([l.lat,l.lng],17);
+  if(marks[id]) marks[id].openPopup();
+  hideRes(); cerrar();
+  document.getElementById('SI').value='';
+}
+
+function irACoord(lat,lng,nombre) {
+  map.setView([parseFloat(lat),parseFloat(lng)],17);
+  L.popup().setLatLng([parseFloat(lat),parseFloat(lng)])
+    .setContent('<div class="ppop"><b>📍 '+nombre+'</b><div class="ppop-btns"><button class="ppop-btn pnav" onclick="navegar('+lat+','+lng+')">🧭 Cómo llegar</button></div></div>')
+    .openOn(map);
+  hideRes(); document.getElementById('SI').value='';
+}
+
+function hideRes() { document.getElementById('resultados').style.display='none'; }
+
+function renderLista() {
+  var filtrados = filtro==='todos' ? lugares : lugares.filter(function(l){return l.cat===filtro;});
+  var favs=filtrados.filter(function(l){return l.cat==='Favorito';});
+  var resto=filtrados.filter(function(l){return l.cat!=='Favorito';});
+  filtrados=favs.concat(resto);
+  var chips=['todos|Todos','Casa|🏠 Casa','Trabajo|💼 Trabajo','Negocio|🏪 Negocio','Amigo|👤 Amigo','Favorito|⭐ Favorito','Otro|📍 Otro'];
+  var chipsHtml='<div class="chips">'+chips.map(function(c){
+    var parts=c.split('|'); var on=filtro===parts[0]?' on':'';
+    return '<span class="chip'+on+'" onclick="setFiltro(\''+parts[0]+'\')">'+parts[1]+'</span>';
+  }).join('')+'</div>';
+  var listaHtml='';
+  if(!filtrados.length){
+    listaHtml='<div class="empty"><div class="ei">📭</div><p>No hay lugares guardados.<br>Tocá el mapa o ➕ para agregar.</p></div>';
+  } else {
+    filtrados.forEach(function(l){
+      var color=COLS[l.cat]||'#64748b';
+      listaHtml+='<div class="litem" onclick="irA('+l.id+')"><div class="ldot" style="background:'+color+'"></div><div class="linfo"><div class="ln">'+l.nombre+'</div><div class="lc">'+l.cat+' · '+l.fecha+'</div></div><button class="lbtn lnav" onclick="event.stopPropagation();navegar('+l.lat+','+l.lng+')">🧭</button><button class="lbtn ldel" onclick="event.stopPropagation();eliminar('+l.id+')">🗑️</button></div>';
+    });
+  }
+  document.getElementById('pTitulo').innerHTML='📌 Mis Lugares <span class="badge">'+lugares.length+'</span>';
+  document.getElementById('pBody').innerHTML=chipsHtml+listaHtml;
+}
+
+function setFiltro(cat) { filtro=cat; renderLista(); }
+
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
+  var el=document.getElementById('t-'+tab); if(el) el.classList.add('on');
+  if(tab==='lugares'){renderLista();abrirPanel();}
+  else if(tab==='mapa'){cerrar();}
+}
+
+function abrirPanel() {
+  document.getElementById('panel').classList.add('open');
+  document.getElementById('overlay').style.display='block';
+}
+
+function cerrar() {
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('overlay').style.display='none';
+  hideRes();
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
+  document.getElementById('t-mapa').classList.add('on');
+}
+
+function showInfo() {
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  d.innerHTML='<div style="background:var(--card);color:var(--texto);border-radius:20px;padding:24px;max-width:340px;width:100%">' +
+    '<div style="font-size:36px;text-align:center">🗺️</div>' +
+    '<h2 style="text-align:center;margin:8px 0 4px">MendozaMapa</h2>' +
+    '<p style="text-align:center;color:#64748b;font-size:12px;margin-bottom:16px">Provincia de Mendoza, Argentina</p>' +
+    '<div style="font-size:13px;line-height:2;color:var(--texto)">📍 <b>Tocá el mapa</b> para guardar un lugar<br>➕ <b>Botón verde</b> guarda tu posición actual<br>🧭 <b>Cómo llegar</b> abre Google Maps con GPS<br>🔍 <b>Buscar</b> encuentra lugares y direcciones<br>💾 <b>Exportar</b> hace backup de tus lugares<br>📂 <b>Importar</b> restaura el backup</div>' +
+    '<button onclick="this.parentElement.parentElement.remove()" style="width:100%;margin-top:16px;padding:13px;background:#2563a8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">Cerrar</button>' +
+    '</div>';
+  document.body.appendChild(d);
+  d.onclick=function(e){if(e.target===d)d.remove();};
+}
+
+function exportar() {
+  if(!lugares.length){toast('⚠️ No hay lugares para exportar');return;}
+  var blob=new Blob([JSON.stringify({version:2,lugares:lugares},null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a'); a.href=url; a.download='MendozaMapa_backup.json'; a.click();
+  URL.revokeObjectURL(url); toast('💾 Backup exportado!');
+}
+
+function importar() {
+  var inp=document.createElement('input'); inp.type='file'; inp.accept='.json';
+  inp.onchange=function(e){
+    var file=e.target.files[0]; if(!file) return;
+    var r=new FileReader();
+    r.onload=function(ev){
+      try {
+        var data=JSON.parse(ev.target.result);
+        var imp=data.lugares||data; if(!Array.isArray(imp)) throw new Error();
+        var ex={}; lugares.forEach(function(l){ex[l.id]=true;});
+        var nuevos=0; imp.forEach(function(l){if(!ex[l.id]){lugares.push(l);nuevos++;}});
+        save();
+        Object.values(marks).forEach(function(m){m.remove();}); marks={};
+        cargarMarkers(); actualizarBadge();
+        toast('✅ '+nuevos+' lugares importados!');
+      } catch(err){toast('❌ Archivo inválido');}
+    };
+    r.readAsText(file);
+  };
+  inp.click();
+}
+
+function save() { localStorage.setItem('mm_v2',JSON.stringify(lugares)); }
+
+function actualizarBadge() {
+  var b=document.getElementById('badge'); if(b) b.textContent=lugares.length;
+}
+
+function toast(msg) {
+  var el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(function(){el.classList.remove('show');},2500);
+}
+
+// ARRANQUE
+window.onload = function() {
+  initMap();
+};
+
+document.addEventListener('click', function(e){
+  var res=document.getElementById('resultados');
+  var sb=document.getElementById('searchbar');
+  if(res&&sb&&!res.contains(e.target)&&!sb.contains(e.target)) hideRes();
+});
+</script>
+</body>
+</html>
