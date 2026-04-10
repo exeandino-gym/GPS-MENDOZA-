@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#17365c" />
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MendozaMapa">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>MendozaMapa Zona Este Pro PWA</title>
+<link rel="manifest" href="./app.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--azul:#17365c;--azul2:#2563a8;--verde:#16a34a;--bg:#eef3f8;--card:#fff;--text:#0f172a;--muted:#64748b;--border:#dbe4ee;--danger:#dc2626}
+body.dark{--bg:#0f172a;--card:#162033;--text:#f8fafc;--muted:#9fb0c5;--border:#2b3b51}
+html,body{height:100%;overflow:hidden;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+#app{position:fixed;inset:0;display:flex;flex-direction:column}
+#header{background:linear-gradient(135deg,#17365c,#2563a8);color:#fff;padding:10px 12px;display:flex;align-items:center;gap:10px}
+.logo{width:42px;height:42px;border-radius:14px;overflow:hidden;flex:0 0 auto;box-shadow:0 4px 14px rgba(0,0,0,.25);background:#17365c}
+#header .title{flex:1;min-width:0}
+#header h1{font-size:17px;line-height:1.05}
+#header p{font-size:11px;opacity:.85;margin-top:3px}
+.hbtn{width:38px;height:38px;border:none;border-radius:11px;background:rgba(255,255,255,.18);color:#fff;font-size:18px}
+#installBtn{display:none}
+#toolbar{background:var(--card);padding:8px 10px;border-bottom:1px solid var(--border);display:flex;gap:8px}
+#q{flex:1;border:2px solid var(--border);background:var(--bg);color:var(--text);border-radius:12px;padding:10px 12px;font-size:14px}
+#q:focus{outline:none;border-color:var(--azul2)}
+#searchBtn{border:none;background:var(--azul2);color:#fff;border-radius:12px;padding:0 16px;font-weight:700}
+#filters{background:var(--card);border-bottom:1px solid var(--border);padding:8px;display:flex;gap:6px;overflow:auto;scrollbar-width:none}
+#filters::-webkit-scrollbar{display:none}
+.select{border:1px solid var(--border);background:var(--bg);color:var(--text);padding:8px 10px;border-radius:999px;font-size:12px;white-space:nowrap}
+#statusBar{background:#dbeafe;color:#1e3a8a;font-size:11px;padding:6px 10px;display:flex;justify-content:space-between;gap:8px}
+body.dark #statusBar{background:#0b2447;color:#bfdbfe}
+#map{flex:1}
+#tabs{display:flex;background:var(--card);border-top:1px solid var(--border)}
+.tab{flex:1;border:none;background:none;padding:10px 4px 12px;color:var(--muted);font-size:10px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.tab .i{font-size:22px}.tab.on{color:var(--azul2);font-weight:700}
+#fabs{position:fixed;right:12px;bottom:78px;display:flex;flex-direction:column;gap:10px;z-index:450}
+.fab{width:52px;height:52px;border:none;border-radius:50%;color:#fff;font-size:22px;box-shadow:0 6px 18px rgba(0,0,0,.28)}
+.fab.blue{background:var(--azul2)} .fab.green{background:var(--verde)}
+#panel{position:fixed;left:0;right:0;bottom:0;max-height:82vh;background:var(--card);border-radius:20px 20px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.18);transform:translateY(102%);transition:.25s;z-index:500;overflow:auto}
+#panel.open{transform:translateY(0)}
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,.38);display:none;z-index:490}
+#ph{width:42px;height:4px;background:var(--border);border-radius:999px;margin:9px auto 0}
+#panelHeader{position:sticky;top:0;background:var(--card);padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+#panelTitle{font-weight:800;font-size:16px}
+.pclose{width:32px;height:32px;border:none;border-radius:50%;background:var(--bg);color:var(--muted)}
+#panelBody{padding:12px 14px 20px}
+.card{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:8px}
+.row{display:flex;gap:8px;align-items:center}.grow{flex:1;min-width:0}
+.name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{font-size:11px;color:var(--muted);margin-top:2px}
+.dot{width:14px;height:14px;border-radius:50%;flex:0 0 auto}
+.btn{border:none;border-radius:10px;padding:8px 10px;font-weight:700;font-size:12px}
+.btn.blue{background:var(--azul2);color:#fff}.btn.red{background:#fee2e2;color:#b91c1c}.btn.gray{background:var(--bg);color:var(--text);border:1px solid var(--border)}.btn.green{background:var(--verde);color:#fff}
+.input,.textarea{width:100%;border:2px solid var(--border);background:var(--bg);color:var(--text);border-radius:12px;padding:11px 12px;font-size:14px;margin-top:6px;margin-bottom:12px}
+.input:focus,.textarea:focus{outline:none;border-color:var(--azul2)}
+.label{font-size:12px;font-weight:800;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:999px;background:var(--bg);font-size:12px;font-weight:700;cursor:pointer}
+.chip.on{background:var(--azul2);border-color:var(--azul2);color:#fff}
+.empty{text-align:center;padding:28px 16px;color:var(--muted)}
+#results{position:fixed;left:10px;right:10px;top:118px;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,.16);display:none;max-height:50vh;overflow:auto;z-index:600}
+.item{padding:12px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center}.item:last-child{border-bottom:none}
+.small{font-size:11px;color:var(--muted)}
+#toast{position:fixed;left:50%;bottom:85px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:999}
+#toast.show{opacity:1}
+.legend{position:fixed;left:10px;bottom:82px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px 10px;z-index:420;box-shadow:0 2px 12px rgba(0,0,0,.12);font-size:11px}
+.legend .l{display:flex;gap:6px;align-items:center;margin-bottom:4px}.legend .l:last-child{margin-bottom:0}
+.banner{margin:10px 0 0;background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1px solid #bfdbfe;color:#1d4ed8;padding:10px 12px;border-radius:14px}
+body.dark .banner{background:#0b2447;border-color:#1e3a8a;color:#bfdbfe}
+.kpi{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+.kbox{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:10px;text-align:center}
+.kbox b{display:block;font-size:20px}
+code.inline{background:var(--bg);padding:2px 6px;border-radius:7px;border:1px solid var(--border)}
+.leaflet-control-zoom{display:none!important}
+@media (display-mode: standalone) { body::before{content:'APP INSTALADA';position:fixed;top:8px;right:10px;background:#16a34a;color:#fff;padding:6px 10px;border-radius:999px;font-size:10px;z-index:1000}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 100 100" width="42" height="42" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100" height="100" rx="24" fill="#17365c"/>
+        <circle cx="50" cy="34" r="18" fill="#fff"/>
+        <circle cx="50" cy="34" r="9" fill="#2563a8"/>
+        <path d="M41 46h18L50 64z" fill="#fff"/>
+        <path d="M24 66h52M30 74h40" stroke="#4ea1ff" stroke-width="4" stroke-linecap="round" opacity=".45"/>
+        <text x="50" y="89" text-anchor="middle" fill="#fff" font-size="16" font-family="Arial" font-weight="700">MZA</text>
+      </svg>
+    </div>
+    <div class="title">
+      <h1>MendozaMapa Zona Este Pro</h1>
+      <p>Instalable · sin Firebase · lista para GitHub Pages</p>
+    </div>
+    <button class="hbtn" id="installBtn" onclick="triggerInstall()" title="Instalar app">⬇️</button>
+    <button class="hbtn" onclick="toggleDark()">🌙</button>
+    <button class="hbtn" onclick="openConfig()">⚙️</button>
+  </div>
+  <div id="toolbar">
+    <input id="q" type="text" placeholder="Buscar barrio, finca, distrito o lugar..." oninput="liveSearch(this.value)" onkeydown="if(event.key==='Enter')runSearch()">
+    <button id="searchBtn" onclick="runSearch()">Buscar</button>
+  </div>
+  <div id="filters">
+    <select class="select" id="deptFilter" onchange="applyFilters()"><option value="todos">Todos los departamentos</option></select>
+    <select class="select" id="typeFilter" onchange="applyFilters()">
+      <option value="todos">Todos los tipos</option>
+      <option value="barrio">Barrios</option>
+      <option value="distrito">Distritos</option>
+      <option value="finca">Fincas</option>
+      <option value="localidad">Localidades</option>
+      <option value="usuario">Mis lugares</option>
+    </select>
+  </div>
+  <div id="statusBar"><span id="statusLeft">Catálogo base: 0</span><span id="statusRight">Mis lugares: 0</span></div>
+  <div id="map"></div>
+  <div id="tabs">
+    <button class="tab on" id="t-mapa" onclick="switchTab('mapa')"><span class="i">🗺️</span>Mapa</button>
+    <button class="tab" id="t-catalogo" onclick="switchTab('catalogo')"><span class="i">📚</span>Catálogo</button>
+    <button class="tab" id="t-mis" onclick="switchTab('mis')"><span class="i">📌</span>Mis Lugares</button>
+    <button class="tab" id="t-ayuda" onclick="switchTab('ayuda')"><span class="i">ℹ️</span>Ayuda</button>
+  </div>
+</div>
+<div id="results"></div>
+<div class="legend">
+  <div class="l"><div class="dot" style="background:#7c3aed"></div><span>Barrio</span></div>
+  <div class="l"><div class="dot" style="background:#ea580c"></div><span>Distrito</span></div>
+  <div class="l"><div class="dot" style="background:#15803d"></div><span>Finca</span></div>
+  <div class="l"><div class="dot" style="background:#0891b2"></div><span>Localidad</span></div>
+  <div class="l"><div class="dot" style="background:#2563a8"></div><span>Mis lugares</span></div>
+</div>
+<div id="fabs">
+  <button class="fab blue" onclick="goToMe()">📍</button>
+  <button class="fab green" onclick="addCurrentPoint()">➕</button>
+</div>
+<div id="overlay" onclick="closePanel()"></div>
+<div id="panel"><div id="ph"></div><div id="panelHeader"><div id="panelTitle">Panel</div><button class="pclose" onclick="closePanel()">✕</button></div><div id="panelBody"></div></div>
+<div id="toast"></div>
+
+<script>
+const BASE_POINTS = [{"name": "Junín", "type": "localidad", "dept": "Junín", "lat": -33.132, "lng": -68.4729}, {"name": "Algarrobo Grande", "type": "distrito", "dept": "Junín", "lat": -33.1368, "lng": -68.3938}, {"name": "Alto Verde", "type": "distrito", "dept": "Junín", "lat": -33.1186, "lng": -68.423}, {"name": "La Colonia", "type": "distrito", "dept": "Junín", "lat": -33.1065, "lng": -68.4547}, {"name": "Los Barriales", "type": "distrito", "dept": "Junín", "lat": -33.1007, "lng": -68.5707}, {"name": "Medrano (Junín)", "type": "distrito", "dept": "Junín", "lat": -33.1228, "lng": -68.6184}, {"name": "Mundo Nuevo", "type": "distrito", "dept": "Junín", "lat": -33.087, "lng": -68.492}, {"name": "Phillips", "type": "distrito", "dept": "Junín", "lat": -33.158, "lng": -68.443}, {"name": "Rodríguez Peña", "type": "distrito", "dept": "Junín", "lat": -33.0875, "lng": -68.44}, {"name": "Barrio Gran Capitán", "type": "barrio", "dept": "Junín", "lat": -33.131, "lng": -68.4745}, {"name": "Barrio Santa Cecilia", "type": "barrio", "dept": "Junín", "lat": -33.1283, "lng": -68.469}, {"name": "Barrio San Gabriel", "type": "barrio", "dept": "Junín", "lat": -33.1352, "lng": -68.4661}, {"name": "Barrio Las Bóvedas", "type": "barrio", "dept": "Junín", "lat": -33.1336, "lng": -68.4688}, {"name": "Finca Arrascaeta", "type": "finca", "dept": "Junín", "lat": -33.149, "lng": -68.455}, {"name": "Finca Calle Centro", "type": "finca", "dept": "Junín", "lat": -33.128, "lng": -68.483}, {"name": "Finca Los Barriales", "type": "finca", "dept": "Junín", "lat": -33.1019, "lng": -68.565}, {"name": "La Paz", "type": "localidad", "dept": "La Paz", "lat": -33.4615, "lng": -67.5564}, {"name": "Villa Antigua", "type": "distrito", "dept": "La Paz", "lat": -33.471, "lng": -67.5615}, {"name": "Las Chacritas", "type": "distrito", "dept": "La Paz", "lat": -33.4315, "lng": -67.5}, {"name": "Desaguadero", "type": "distrito", "dept": "La Paz", "lat": -32.977, "lng": -67.292}, {"name": "Rivadavia", "type": "localidad", "dept": "Rivadavia", "lat": -33.1902, "lng": -68.4606}, {"name": "Andrade", "type": "distrito", "dept": "Rivadavia", "lat": -33.2107, "lng": -68.3665}, {"name": "El Mirador", "type": "distrito", "dept": "Rivadavia", "lat": -33.205, "lng": -68.398}, {"name": "La Central", "type": "distrito", "dept": "Rivadavia", "lat": -33.225, "lng": -68.44}, {"name": "La Libertad", "type": "distrito", "dept": "Rivadavia", "lat": -33.175, "lng": -68.39}, {"name": "Los Árboles", "type": "distrito", "dept": "Rivadavia", "lat": -33.16, "lng": -68.5}, {"name": "Los Campamentos", "type": "distrito", "dept": "Rivadavia", "lat": -33.289, "lng": -68.448}, {"name": "Medrano (Rivadavia)", "type": "distrito", "dept": "Rivadavia", "lat": -33.1733, "lng": -68.626}, {"name": "Mundo Nuevo (Rivadavia)", "type": "distrito", "dept": "Rivadavia", "lat": -33.152, "lng": -68.418}, {"name": "Reducción", "type": "distrito", "dept": "Rivadavia", "lat": -33.214, "lng": -68.523}, {"name": "Santa María de Oro", "type": "distrito", "dept": "Rivadavia", "lat": -33.236, "lng": -68.482}, {"name": "Barrio Molina Campos", "type": "barrio", "dept": "Rivadavia", "lat": -33.1945, "lng": -68.4638}, {"name": "Barrio Confraternidad", "type": "barrio", "dept": "Rivadavia", "lat": -33.1917, "lng": -68.4651}, {"name": "Barrio Villa Parque Rivadavia", "type": "barrio", "dept": "Rivadavia", "lat": -33.1886, "lng": -68.4575}, {"name": "Barrio Marcial Pérez", "type": "barrio", "dept": "Rivadavia", "lat": -33.1873, "lng": -68.4621}, {"name": "Barrio Mutual Cuyo", "type": "barrio", "dept": "Rivadavia", "lat": -33.1934, "lng": -68.4572}, {"name": "Barrio Jardín Rivadavia", "type": "barrio", "dept": "Rivadavia", "lat": -33.1953, "lng": -68.4559}, {"name": "Barrio Fernando Fader", "type": "barrio", "dept": "Rivadavia", "lat": -33.1867, "lng": -68.468}, {"name": "Barrio San Isidro", "type": "barrio", "dept": "Rivadavia", "lat": -33.1828, "lng": -68.4662}, {"name": "Barrio Arenales", "type": "barrio", "dept": "Rivadavia", "lat": -33.1981, "lng": -68.4514}, {"name": "Finca Los Guindos", "type": "finca", "dept": "Rivadavia", "lat": -33.21, "lng": -68.432}, {"name": "Finca La Primavera", "type": "finca", "dept": "Rivadavia", "lat": -33.202, "lng": -68.486}, {"name": "Finca Carril Montecaseros", "type": "finca", "dept": "Rivadavia", "lat": -33.187, "lng": -68.409}, {"name": "San Martín", "type": "localidad", "dept": "San Martín", "lat": -33.0812, "lng": -68.4681}, {"name": "Alto Salvador", "type": "distrito", "dept": "San Martín", "lat": -33.009, "lng": -68.445}, {"name": "Alto Verde", "type": "distrito", "dept": "San Martín", "lat": -33.028, "lng": -68.399}, {"name": "Buen Orden", "type": "distrito", "dept": "San Martín", "lat": -33.06, "lng": -68.482}, {"name": "Chapanay", "type": "distrito", "dept": "San Martín", "lat": -33.025, "lng": -68.59}, {"name": "Chivilcoy", "type": "distrito", "dept": "San Martín", "lat": -33.092, "lng": -68.547}, {"name": "El Central", "type": "distrito", "dept": "San Martín", "lat": -33.098, "lng": -68.437}, {"name": "El Divisadero", "type": "distrito", "dept": "San Martín", "lat": -32.993, "lng": -68.525}, {"name": "El Espino", "type": "distrito", "dept": "San Martín", "lat": -33.021, "lng": -68.557}, {"name": "El Ramblón", "type": "distrito", "dept": "San Martín", "lat": -32.979, "lng": -68.598}, {"name": "Las Chimbas", "type": "distrito", "dept": "San Martín", "lat": -33.055, "lng": -68.428}, {"name": "Montecaseros", "type": "distrito", "dept": "San Martín", "lat": -33.002, "lng": -68.357}, {"name": "Nueva California", "type": "distrito", "dept": "San Martín", "lat": -32.826, "lng": -68.239}, {"name": "Palmira", "type": "distrito", "dept": "San Martín", "lat": -33.053, "lng": -68.399}, {"name": "Tres Porteñas", "type": "distrito", "dept": "San Martín", "lat": -33.146, "lng": -68.29}, {"name": "Barrio Güemes", "type": "barrio", "dept": "San Martín", "lat": -33.0784, "lng": -68.4708}, {"name": "Barrio Buen Orden", "type": "barrio", "dept": "San Martín", "lat": -33.061, "lng": -68.483}, {"name": "Barrio Tropero Sosa", "type": "barrio", "dept": "San Martín", "lat": -33.0732, "lng": -68.4612}, {"name": "Barrio Nueva Argentina", "type": "barrio", "dept": "San Martín", "lat": -33.086, "lng": -68.4583}, {"name": "Barrio San Pedro", "type": "barrio", "dept": "San Martín", "lat": -33.08, "lng": -68.4762}, {"name": "Barrio San Antonio", "type": "barrio", "dept": "San Martín", "lat": -33.0871, "lng": -68.4711}, {"name": "Barrio Los Eucaliptos", "type": "barrio", "dept": "San Martín", "lat": -33.0711, "lng": -68.4502}, {"name": "Barrio El Trébol", "type": "barrio", "dept": "San Martín", "lat": -33.0704, "lng": -68.475}, {"name": "Barrio Los Olivos", "type": "barrio", "dept": "San Martín", "lat": -33.0749, "lng": -68.4632}, {"name": "Barrio Cristo Hermano", "type": "barrio", "dept": "San Martín", "lat": -33.0819, "lng": -68.4549}, {"name": "Barrio Don Bosco", "type": "barrio", "dept": "San Martín", "lat": -33.052, "lng": -68.402}, {"name": "Barrio Belgrano Palmira", "type": "barrio", "dept": "San Martín", "lat": -33.0538, "lng": -68.3953}, {"name": "Barrio Los Tilos Palmira", "type": "barrio", "dept": "San Martín", "lat": -33.0493, "lng": -68.4065}, {"name": "Barrio Villa Obrero Palmira", "type": "barrio", "dept": "San Martín", "lat": -33.0564, "lng": -68.4052}, {"name": "Finca La Tebaida", "type": "finca", "dept": "San Martín", "lat": -33.041, "lng": -68.505}, {"name": "Finca Carril Buen Orden", "type": "finca", "dept": "San Martín", "lat": -33.063, "lng": -68.493}, {"name": "Finca Montecaseros", "type": "finca", "dept": "San Martín", "lat": -33.004, "lng": -68.36}, {"name": "Santa Rosa", "type": "localidad", "dept": "Santa Rosa", "lat": -33.254, "lng": -68.151}, {"name": "12 de Octubre", "type": "distrito", "dept": "Santa Rosa", "lat": -33.33, "lng": -68.19}, {"name": "La Dormida", "type": "distrito", "dept": "Santa Rosa", "lat": -33.4502, "lng": -67.905}, {"name": "Las Catitas", "type": "distrito", "dept": "Santa Rosa", "lat": -33.47, "lng": -68.045}, {"name": "Villa Cabecera", "type": "distrito", "dept": "Santa Rosa", "lat": -33.255, "lng": -68.153}, {"name": "Los Otoyanes", "type": "finca", "dept": "Santa Rosa", "lat": -33.282, "lng": -68.095}, {"name": "Finca La Dormida", "type": "finca", "dept": "Santa Rosa", "lat": -33.438, "lng": -67.93}];
+const COLORS = {barrio:'#7c3aed', distrito:'#ea580c', finca:'#15803d', localidad:'#0891b2', usuario:'#2563a8'};
+let map, myMarker = null, selectedLatLng = null, deferredPrompt = null;
+let catalog = JSON.parse(localStorage.getItem('mza_catalog_v2') || 'null') || BASE_POINTS;
+let userPoints = JSON.parse(localStorage.getItem('mza_user_points_v2') || '[]');
+let dark = localStorage.getItem('mza_dark_v2') === '1';
+let catalogMarkers = [], userMarkers = {}, searchPopup = null, tempCategory = 'usuario';
+if(dark) document.body.classList.add('dark');
+function saveAll(){localStorage.setItem('mza_catalog_v2', JSON.stringify(catalog)); localStorage.setItem('mza_user_points_v2', JSON.stringify(userPoints));}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400)}
+function toggleDark(){dark=!dark;document.body.classList.toggle('dark',dark);localStorage.setItem('mza_dark_v2',dark?'1':'0')}
+function normalize(s){return (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+function markerIcon(type){const c=COLORS[type]||'#64748b';return L.divIcon({className:'',html:`<div style="width:14px;height:14px;border-radius:50%;background:${c};border:2px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,.35)"></div>`,iconSize:[14,14],iconAnchor:[7,7]})}
+function init(){map=L.map('map',{zoomControl:false,attributionControl:false}).setView([-33.20,-68.35],9);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);L.control.attribution({position:'bottomleft',prefix:'© OpenStreetMap'}).addTo(map);map.on('click',e=>{selectedLatLng=e.latlng;openAddPanel();});fillDeptFilter();renderAllMarkers();updateCounters();registerPWA();}
+function registerPWA(){if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;document.getElementById('installBtn').style.display='inline-flex';toast('La app se puede instalar');});window.addEventListener('appinstalled',()=>{deferredPrompt=null;document.getElementById('installBtn').style.display='none';toast('App instalada correctamente');});}
+async function triggerInstall(){if(!deferredPrompt){openPanel('⬇️ Instalar app',`<div class="card"><b>Instalación</b><div class="small" style="margin-top:8px">Si no aparece el botón automático, abrí el menú del navegador y tocá <b>Instalar aplicación</b> o <b>Agregar a pantalla principal</b>.</div></div><div class="card"><b>Importante</b><div class="small" style="margin-top:8px">Para instalarla como app real, subila a GitHub Pages y abrila desde la URL HTTPS.</div></div>`);return;}deferredPrompt.prompt();const choice=await deferredPrompt.userChoice;if(choice&&choice.outcome==='accepted')toast('Instalación aceptada');deferredPrompt=null;document.getElementById('installBtn').style.display='none';}
+function fillDeptFilter(){const sel=document.getElementById('deptFilter');const depts=[...new Set(catalog.map(x=>x.dept).concat(userPoints.map(x=>x.dept||'Sin departamento')))].sort();sel.innerHTML='<option value="todos">Todos los departamentos</option>'+depts.map(d=>`<option value="${d}">${d}</option>`).join('');}
+function updateCounters(){document.getElementById('statusLeft').textContent=`Catálogo base: ${catalog.length}`;document.getElementById('statusRight').textContent=`Mis lugares: ${userPoints.length}`;}
+function getFilteredData(includeUser=true){const dept=document.getElementById('deptFilter').value;const type=document.getElementById('typeFilter').value;const base=catalog.filter(x=>(dept==='todos'||x.dept===dept)&&(type==='todos'||x.type===type));const extra=includeUser?userPoints.filter(x=>(dept==='todos'||(x.dept||'Sin departamento')===dept)&&(type==='todos'||type==='usuario')):[];return {base,extra};}
+function clearCatalogMarkers(){catalogMarkers.forEach(m=>m.remove());catalogMarkers=[];Object.values(userMarkers).forEach(m=>m.remove());userMarkers={};}
+function renderAllMarkers(){clearCatalogMarkers();const {base,extra}=getFilteredData(true);base.forEach(p=>{const m=L.marker([p.lat,p.lng],{icon:markerIcon(p.type)}).addTo(map);m.bindPopup(popupHtml(p,false));catalogMarkers.push(m);});extra.forEach(p=>{const m=L.marker([p.lat,p.lng],{icon:markerIcon('usuario')}).addTo(map);m.bindPopup(popupHtml(p,true));userMarkers[p.id]=m;});}
+function popupHtml(p,isUser){const t=isUser?'Mis lugares':'Catálogo base';const btnDelete=isUser?`<button class="btn red" onclick="deleteUserPoint(${p.id})">🗑️ Borrar</button>`:'';return `<div style="min-width:170px;font-family:Segoe UI,Arial,sans-serif"><b>${escapeHtml(p.name)}</b><div class="small">${escapeHtml(p.type)} · ${escapeHtml(p.dept||'')}</div><div class="small">${t}</div><div style="display:flex;gap:6px;margin-top:8px"><button class="btn blue" onclick="routeTo(${p.lat},${p.lng})">🧭 Ir</button>${btnDelete}</div></div>`;}
+function escapeHtml(str){return (str||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function applyFilters(){renderAllMarkers();}
+function goToMe(){toast('Buscando ubicación...');navigator.geolocation.getCurrentPosition(pos=>{const lat=pos.coords.latitude,lng=pos.coords.longitude;map.setView([lat,lng],16);if(myMarker)myMarker.remove();myMarker=L.marker([lat,lng],{icon:L.divIcon({className:'',html:'<div style="width:18px;height:18px;border-radius:50%;background:#2563a8;border:3px solid #fff;box-shadow:0 0 0 6px rgba(37,99,168,.25)"></div>',iconSize:[18,18],iconAnchor:[9,9]})}).addTo(map).bindPopup('<b>📍 Estás acá</b>').openPopup();selectedLatLng={lat,lng};toast('Ubicación encontrada');},()=>toast('No se pudo obtener la ubicación'),{enableHighAccuracy:true,timeout:10000});}
+function addCurrentPoint(){if(selectedLatLng) return openAddPanel();navigator.geolocation.getCurrentPosition(pos=>{selectedLatLng={lat:pos.coords.latitude,lng:pos.coords.longitude};openAddPanel();},()=>toast('Tocá el mapa para elegir el punto'));}
+function openPanel(title,html){document.getElementById('panelTitle').textContent=title;document.getElementById('panelBody').innerHTML=html;document.getElementById('overlay').style.display='block';document.getElementById('panel').classList.add('open')}
+function closePanel(){document.getElementById('panel').classList.remove('open');document.getElementById('overlay').style.display='none';document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));document.getElementById('t-mapa').classList.add('on');hideResults()}
+function openAddPanel(){tempCategory='usuario';const depts=[...new Set(catalog.map(x=>x.dept))].sort();openPanel('➕ Agregar lugar',`<div class="label">Nombre</div><input class="input" id="newName" placeholder="Ej: Finca Gómez, Barrio San Pedro, Cliente..."><div class="label">Departamento</div><select class="input" id="newDept">${depts.map(d=>`<option value="${d}">${d}</option>`).join('')}</select><div class="label">Tipo</div><div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px"><span class="chip on" id="chip_usuario" onclick="pickType('usuario')">📌 Usuario</span><span class="chip" id="chip_barrio" onclick="pickType('barrio')">🏘️ Barrio</span><span class="chip" id="chip_distrito" onclick="pickType('distrito')">🧭 Distrito</span><span class="chip" id="chip_finca" onclick="pickType('finca')">🌿 Finca</span><span class="chip" id="chip_localidad" onclick="pickType('localidad')">🏙️ Localidad</span></div><div class="label">Notas</div><textarea class="textarea" id="newNotes" rows="3" placeholder="Opcional"></textarea><div class="grid2"><button class="btn blue" onclick="saveUserPoint()">Guardar en mis lugares</button><button class="btn gray" onclick="saveToCatalog()">Guardar en catálogo base</button></div><div class="small" style="margin-top:10px">Guardá en <b>catálogo base</b> si querés que quede como parte fija de la app para venderla. Guardá en <b>mis lugares</b> si solo es para uso personal en ese celular o navegador.</div>`);}
+function pickType(type){tempCategory=type;document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));document.getElementById('chip_'+type).classList.add('on')}
+function saveUserPoint(){const name=document.getElementById('newName').value.trim();const dept=document.getElementById('newDept').value;const notes=document.getElementById('newNotes').value.trim();if(!name||!selectedLatLng)return toast('Falta nombre o punto en el mapa');const p={id:Date.now(),name,type:tempCategory==='usuario'?'usuario':tempCategory,dept,notes,lat:selectedLatLng.lat,lng:selectedLatLng.lng,created:new Date().toLocaleDateString('es-AR')};userPoints.unshift(p);saveAll();fillDeptFilter();renderAllMarkers();updateCounters();closePanel();toast('Lugar guardado');}
+function saveToCatalog(){const name=document.getElementById('newName').value.trim();const dept=document.getElementById('newDept').value;if(!name||!selectedLatLng)return toast('Falta nombre o punto en el mapa');catalog.unshift({name,type:tempCategory==='usuario'?'finca':tempCategory,dept,lat:selectedLatLng.lat,lng:selectedLatLng.lng});saveAll();fillDeptFilter();renderAllMarkers();updateCounters();closePanel();toast('Se agregó al catálogo base');}
+function deleteUserPoint(id){if(!confirm('¿Borrar este lugar?'))return;userPoints=userPoints.filter(x=>x.id!==id);saveAll();renderAllMarkers();updateCounters();toast('Lugar eliminado');map.closePopup();}
+function routeTo(lat,lng){window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`,'_blank');}
+function switchTab(tab){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));document.getElementById('t-'+tab).classList.add('on');if(tab==='mapa'){closePanel();return;}if(tab==='catalogo')openCatalog();if(tab==='mis')openMyPlaces();if(tab==='ayuda')openHelp();}
+function openCatalog(){const {base}=getFilteredData(false);if(!base.length)return openPanel('📚 Catálogo','<div class="empty">No hay resultados con esos filtros.</div>');const grouped={};base.forEach(x=>{const k=x.dept;(grouped[k]=grouped[k]||[]).push(x)});let html=`<div class="banner"><b>Base cargada</b><div class="small" style="margin-top:6px">Esta versión ya trae barrios, distritos, localidades y fincas de la zona este. Podés seguir ampliándola desde el botón ➕ guardando nuevos puntos en el catálogo base.</div></div>`;html+=`<div class="kpi"><div class="kbox"><b>${base.length}</b><span class="small">Puntos filtrados</span></div><div class="kbox"><b>${Object.keys(grouped).length}</b><span class="small">Departamentos visibles</span></div></div>`;Object.keys(grouped).sort().forEach(dept=>{html+=`<div class="card"><div style="font-weight:800;margin-bottom:8px">${dept} <span class="small">(${grouped[dept].length})</span></div>`;grouped[dept].forEach((p,i)=>{const color=COLORS[p.type]||'#64748b';html+=`<div class="row" style="padding:9px 0;border-top:${i?'1px solid var(--border)':'none'}"><div class="dot" style="background:${color}"></div><div class="grow"><div class="name">${escapeHtml(p.name)}</div><div class="meta">${p.type}</div></div><button class="btn blue" onclick="focusPoint(${p.lat},${p.lng})">Ver</button></div>`;});html+='</div>';});openPanel('📚 Catálogo base',html);}
+function openMyPlaces(){if(!userPoints.length)return openPanel('📌 Mis lugares','<div class="empty">Todavía no agregaste lugares propios.</div>');let html='';userPoints.forEach(p=>{html+=`<div class="card"><div class="row"><div class="dot" style="background:${COLORS.usuario}"></div><div class="grow"><div class="name">${escapeHtml(p.name)}</div><div class="meta">${escapeHtml(p.dept||'')} · ${escapeHtml(p.type)}${p.created?' · '+p.created:''}</div></div></div>${p.notes?`<div class="small" style="margin:8px 0 10px">${escapeHtml(p.notes)}</div>`:''}<div class="row"><button class="btn blue" onclick="focusPoint(${p.lat},${p.lng})">Ver en mapa</button><button class="btn red" onclick="deleteUserPoint(${p.id})">Borrar</button></div></div>`;});openPanel('📌 Mis lugares',html);}
+function openHelp(){openPanel('ℹ️ Cómo usarla',`<div class="card"><b>Qué ya trae</b><div class="small" style="margin-top:6px">Trae una base precargada de zona este separada de tus lugares personales.</div></div><div class="card"><b>Cómo instalarla como app</b><div class="small" style="margin-top:6px">Subí estos archivos a GitHub Pages. Cuando la abras desde la URL segura, Chrome puede mostrar el botón para instalarla o dejarte usar <b>Agregar a pantalla principal</b>.</div></div><div class="card"><b>Cómo venderla fácil</b><div class="small" style="margin-top:6px">Dejás el catálogo base cargado y cada comprador puede seguir sumando más barrios, fincas o clientes desde el botón ➕.</div></div><div class="card"><b>Cómo guardar todo</b><div class="small" style="margin-top:6px">En Configuración podés exportar e importar un backup completo en <code class="inline">JSON</code>.</div></div>`)}
+function openConfig(){openPanel('⚙️ Configuración',`<div class="card"><b>Instalación</b><div class="small" style="margin:6px 0 10px">Usá el botón de descarga del encabezado si aparece. Si no, abrí el menú del navegador y buscá <b>Instalar aplicación</b> o <b>Agregar a pantalla principal</b>.</div><button class="btn green" onclick="triggerInstall()">Instalar app</button></div><div class="card"><b>Backup completo</b><div class="small" style="margin:6px 0 10px">Exporta catálogo base + mis lugares a un archivo JSON.</div><div class="row"><button class="btn blue" onclick="exportData()">Exportar</button><button class="btn gray" onclick="importData()">Importar</button></div></div><div class="card"><b>Reiniciar solo mis lugares</b><div class="small" style="margin:6px 0 10px">Borra tus puntos agregados y deja intacto el catálogo base.</div><button class="btn red" onclick="resetUserPoints()">Borrar mis lugares</button></div><div class="card"><b>Restaurar catálogo original</b><div class="small" style="margin:6px 0 10px">Devuelve el catálogo base al listado inicial incluido en la app.</div><button class="btn red" onclick="resetCatalog()">Restaurar catálogo</button></div>`)}
+function resetUserPoints(){if(!confirm('¿Borrar todos tus lugares?'))return;userPoints=[];saveAll();renderAllMarkers();updateCounters();closePanel();toast('Mis lugares eliminados');}
+function resetCatalog(){if(!confirm('¿Restaurar el catálogo original?'))return;catalog=[...BASE_POINTS];saveAll();fillDeptFilter();renderAllMarkers();updateCounters();closePanel();toast('Catálogo restaurado');}
+function exportData(){const blob=new Blob([JSON.stringify({catalog,userPoints,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mendomapa-zona-este-backup.json';a.click();URL.revokeObjectURL(a.href);toast('Backup exportado');}
+function importData(){const inp=document.createElement('input');inp.type='file';inp.accept='.json';inp.onchange=e=>{const f=e.target.files[0];if(!f)return;const fr=new FileReader();fr.onload=ev=>{try{const data=JSON.parse(ev.target.result);if(!Array.isArray(data.catalog)||!Array.isArray(data.userPoints))throw new Error();catalog=data.catalog;userPoints=data.userPoints;saveAll();fillDeptFilter();renderAllMarkers();updateCounters();closePanel();toast('Backup importado');}catch(err){toast('Archivo inválido');}};fr.readAsText(f);};inp.click();}
+function focusPoint(lat,lng){map.setView([lat,lng],15);closePanel();}
+function liveSearch(val){const q=normalize(val);if(q.length<2)return hideResults();const all=catalog.concat(userPoints);const found=all.filter(x=>normalize(x.name).includes(q)||normalize(x.dept||'').includes(q)||normalize(x.type||'').includes(q)).slice(0,12);const box=document.getElementById('results');if(!found.length){box.innerHTML='<div class="item"><div class="small">Sin resultados.</div></div>';box.style.display='block';return;}box.innerHTML=found.map(x=>`<div class="item" onclick="searchSelect('${escapeJs(x.name)}',${x.lat},${x.lng})"><div class="dot" style="background:${COLORS[x.type]||COLORS.usuario}"></div><div class="grow"><div class="name">${escapeHtml(x.name)}</div><div class="small">${escapeHtml(x.dept||'')} · ${escapeHtml(x.type||'usuario')}</div></div></div>`).join('');box.style.display='block';}
+function runSearch(){const q=document.getElementById('q').value.trim();if(!q)return;liveSearch(q);}
+function searchSelect(name,lat,lng){map.setView([lat,lng],16);if(searchPopup)map.closePopup(searchPopup);searchPopup=L.popup().setLatLng([lat,lng]).setContent(`<b>${escapeHtml(name)}</b>`).openOn(map);hideResults();document.getElementById('q').value='';}
+function hideResults(){document.getElementById('results').style.display='none';}
+function escapeJs(s){return (s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+window.onclick=function(e){const r=document.getElementById('results');const bar=document.getElementById('toolbar');if(r.style.display==='block'&&!r.contains(e.target)&&!bar.contains(e.target))hideResults();}
+window.onload=init;
+</script>
+</body>
+</html>
