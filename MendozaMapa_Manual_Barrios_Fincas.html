@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#1f4f82" />
+  <title>MendozaMapa Manual</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root{
+      --azul:#1f4f82;
+      --azul2:#2f6fb0;
+      --verde:#16a34a;
+      --gris:#64748b;
+      --borde:#dbe4ee;
+      --fondo:#f4f7fb;
+      --card:#ffffff;
+      --texto:#0f172a;
+      --sombra:0 6px 24px rgba(15,23,42,.14);
+      --rojo:#dc2626;
+      --amarillo:#ca8a04;
+      --violeta:#7c3aed;
+      --finca:#15803d;
+      --barrio:#2563eb;
+      --otro:#64748b;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{
+      margin:0;padding:0;width:100%;height:100%;overflow:hidden;
+      font-family:Arial,Helvetica,sans-serif;background:var(--fondo);color:var(--texto)
+    }
+    #app{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--fondo)}
+    #header{
+      background:linear-gradient(135deg,var(--azul),var(--azul2));
+      color:#fff;padding:12px 14px;display:flex;align-items:center;gap:12px;z-index:20;box-shadow:var(--sombra)
+    }
+    .logo{
+      width:52px;height:52px;border-radius:16px;background:#fff;color:var(--azul);
+      display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;flex-shrink:0
+    }
+    .title-wrap{flex:1;min-width:0}
+    .title-wrap h1{margin:0;font-size:17px;line-height:1.1}
+    .title-wrap p{margin:4px 0 0;font-size:12px;opacity:.92}
+    .icon-btn{
+      border:none;background:rgba(255,255,255,.18);color:#fff;width:42px;height:42px;
+      border-radius:14px;font-size:18px;cursor:pointer;flex-shrink:0
+    }
+    #searchbar{
+      display:flex;gap:10px;padding:12px;background:var(--card);
+      border-bottom:1px solid var(--borde);z-index:15
+    }
+    #searchInput{
+      flex:1;border:2px solid var(--borde);border-radius:14px;padding:12px 14px;
+      font-size:15px;outline:none;background:#fff
+    }
+    #searchInput:focus{border-color:var(--azul2)}
+    #searchBtn{
+      border:none;border-radius:14px;background:var(--azul2);color:#fff;font-weight:700;
+      padding:0 18px;cursor:pointer
+    }
+    #map{flex:1;width:100%}
+    #tabs{display:flex;background:var(--card);border-top:1px solid var(--borde);z-index:20}
+    .tab{
+      flex:1;border:none;background:transparent;padding:10px 4px 12px;font-size:11px;color:var(--gris);
+      display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer
+    }
+    .tab span:first-child{font-size:22px}
+    .tab.active{color:var(--azul2);font-weight:700}
+    #fabWrap{
+      position:fixed;right:14px;bottom:78px;display:flex;flex-direction:column;gap:10px;z-index:30
+    }
+    .fab{
+      width:56px;height:56px;border-radius:50%;border:none;color:#fff;font-size:24px;
+      cursor:pointer;box-shadow:var(--sombra)
+    }
+    .fab-blue{background:var(--azul2)}
+    .fab-green{background:var(--verde)}
+    #overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:40
+    }
+    #panel{
+      position:fixed;left:0;right:0;bottom:0;max-height:82vh;background:var(--card);
+      border-radius:22px 22px 0 0;box-shadow:0 -6px 30px rgba(15,23,42,.2);
+      transform:translateY(105%);transition:transform .25s ease;z-index:50;overflow:hidden;
+      display:flex;flex-direction:column
+    }
+    #panel.open{transform:translateY(0)}
+    .panel-handle{width:46px;height:5px;background:#cbd5e1;border-radius:99px;margin:10px auto 6px;flex-shrink:0}
+    .panel-head{
+      display:flex;align-items:center;justify-content:space-between;padding:8px 14px 12px;
+      border-bottom:1px solid var(--borde);flex-shrink:0
+    }
+    .panel-head h2{margin:0;font-size:17px}
+    .close-btn{
+      border:none;background:#eef2f7;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:16px
+    }
+    .panel-body{overflow:auto;padding:14px;flex:1}
+    .card{border:1px solid var(--borde);border-radius:16px;padding:14px;margin-bottom:10px;background:#fff}
+    .card h3{margin:0 0 6px;font-size:15px}
+    .muted{color:var(--gris);font-size:13px;line-height:1.45}
+    .field-label{display:block;margin-bottom:6px;font-size:12px;font-weight:700;color:var(--gris)}
+    .input,.select{
+      width:100%;border:2px solid var(--borde);border-radius:14px;padding:12px 14px;
+      font-size:15px;margin-bottom:12px;outline:none;background:#fff
+    }
+    .save-btn{
+      width:100%;border:none;border-radius:16px;background:var(--verde);color:#fff;
+      font-weight:800;font-size:15px;padding:14px;cursor:pointer
+    }
+    .danger-btn{background:var(--rojo)}
+    .empty{text-align:center;color:var(--gris);padding:26px 10px}
+    .empty .big{font-size:48px;margin-bottom:8px}
+    .chips{display:flex;gap:6px;overflow-x:auto;padding:0 0 12px;scrollbar-width:none}
+    .chips::-webkit-scrollbar{display:none}
+    .chip{
+      border:1px solid var(--borde);background:#fff;border-radius:999px;padding:7px 12px;
+      font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer;color:var(--gris)
+    }
+    .chip.active{background:var(--azul2);color:#fff;border-color:var(--azul2)}
+    .place-item{
+      border:1px solid var(--borde);border-radius:14px;padding:12px;display:flex;align-items:center;
+      gap:10px;margin-bottom:8px;background:#fff
+    }
+    .dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+    .place-main{flex:1;min-width:0}
+    .place-main strong{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .place-main small{color:var(--gris);font-size:12px}
+    .mini-btn{border:none;border-radius:10px;padding:8px 10px;cursor:pointer;font-weight:700}
+    .go-btn{background:#dbeafe;color:#1d4ed8}
+    .del-btn{background:#fee2e2;color:#b91c1c}
+    #toast{
+      position:fixed;left:50%;bottom:92px;transform:translateX(-50%);
+      background:#0f172a;color:#fff;padding:10px 16px;border-radius:12px;font-size:13px;
+      opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:60;white-space:nowrap
+    }
+    #toast.show{opacity:1}
+    .legend{
+      position:fixed;left:10px;bottom:84px;background:#fff;border:1px solid var(--borde);
+      border-radius:14px;padding:10px 12px;z-index:25;box-shadow:var(--sombra);font-size:12px
+    }
+    .legend-item{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+    .legend-item:last-child{margin-bottom:0}
+    .legend-dot{width:10px;height:10px;border-radius:50%}
+    .leaflet-control-zoom{display:none!important}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="header">
+      <div class="logo">MZA</div>
+      <div class="title-wrap">
+        <h1>MendozaMapa</h1>
+        <p>Manual · Base limpia para cargar barrios y fincas</p>
+      </div>
+      <button class="icon-btn" onclick="abrirInfo()">ℹ️</button>
+    </div>
+
+    <div id="searchbar">
+      <input id="searchInput" type="text" placeholder="Buscar dirección o lugar..." />
+      <button id="searchBtn" onclick="buscarDireccion()">Buscar</button>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="tabs">
+      <button class="tab active" onclick="activarTab('mapa', this)"><span>🗺️</span><span>Mapa</span></button>
+      <button class="tab" onclick="mostrarLugares(this)"><span>📍</span><span>Lugares</span></button>
+      <button class="tab" onclick="abrirInfo(this)"><span>⚙️</span><span>Info</span></button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--barrio)"></div><span>Barrios</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--finca)"></div><span>Fincas</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--violeta)"></div><span>Casa</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--amarillo)"></div><span>Trabajo</span></div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--otro)"></div><span>Otros</span></div>
+  </div>
+
+  <div id="fabWrap">
+    <button class="fab fab-blue" onclick="irAMiUbicacion()">📍</button>
+    <button class="fab fab-green" onclick="prepararNuevoLugar()">＋</button>
+  </div>
+
+  <div id="overlay" onclick="cerrarPanel()"></div>
+
+  <div id="panel">
+    <div class="panel-handle"></div>
+    <div class="panel-head">
+      <h2 id="panelTitle">Panel</h2>
+      <button class="close-btn" onclick="cerrarPanel()">✕</button>
+    </div>
+    <div class="panel-body" id="panelBody"></div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    const STORAGE_KEY = 'mendozamapa_manual_limpio_v1';
+    let map;
+    let userMarker = null;
+    let selectedLatLng = null;
+    let places = [];
+    let markers = {};
+    let filtroActual = 'todos';
+
+    const CAT_COLORS = {
+      "Barrio": "#2563eb",
+      "Finca": "#15803d",
+      "Casa": "#7c3aed",
+      "Trabajo": "#ca8a04",
+      "Cliente": "#16a34a",
+      "Otro": "#64748b"
+    };
+
+    function loadPlaces() {
+      try {
+        places = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        if (!Array.isArray(places)) places = [];
+      } catch (e) {
+        places = [];
+      }
+    }
+
+    function savePlaces() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(places));
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    function initMap() {
+      map = L.map('map', { zoomControl:false, attributionControl:false }).setView([-33.190, -68.466], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(map);
+      L.control.attribution({ position:'bottomleft', prefix:'© OSM' }).addTo(map);
+
+      map.on('click', (e) => {
+        selectedLatLng = e.latlng;
+        abrirFormularioLugar();
+      });
+
+      loadPlaces();
+      renderPlaceMarkers();
+    }
+
+    function createColorIcon(color) {
+      return L.divIcon({
+        className: '',
+        html: '<div style="width:16px;height:16px;background:'+color+';border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.35)"></div>',
+        iconSize: [16,16],
+        iconAnchor: [8,8]
+      });
+    }
+
+    function renderPlaceMarkers() {
+      Object.values(markers).forEach((m) => m.remove());
+      markers = {};
+
+      places.forEach((place) => {
+        const color = CAT_COLORS[place.category] || CAT_COLORS["Otro"];
+        const marker = L.marker([place.lat, place.lng], { icon: createColorIcon(color) }).addTo(map);
+        marker.bindPopup(`
+          <div style="min-width:180px;font-family:Arial,sans-serif;">
+            <strong style="font-size:14px;display:block;margin-bottom:4px;">${escapeHtml(place.name)}</strong>
+            <div style="font-size:12px;color:#64748b;margin-bottom:4px;">${escapeHtml(place.category)}</div>
+            <div style="font-size:11px;color:#64748b;margin-bottom:8px;">${place.lat} , ${place.lng}</div>
+            <button onclick="navegarA(${place.lat}, ${place.lng})" style="border:none;background:#2563eb;color:white;padding:8px 10px;border-radius:10px;font-weight:700;cursor:pointer;">Cómo llegar</button>
+          </div>
+        `);
+        markers[place.id] = marker;
+      });
+    }
+
+    function activarTab(tabName, btn) {
+      document.querySelectorAll('.tab').forEach((b) => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      if (tabName === 'mapa') cerrarPanel();
+    }
+
+    function abrirPanel(title, html) {
+      document.getElementById('panelTitle').textContent = title;
+      document.getElementById('panelBody').innerHTML = html;
+      document.getElementById('overlay').style.display = 'block';
+      document.getElementById('panel').classList.add('open');
+    }
+
+    function cerrarPanel() {
+      document.getElementById('overlay').style.display = 'none';
+      document.getElementById('panel').classList.remove('open');
+      document.querySelectorAll('.tab').forEach((b, i) => {
+        if (i === 0) b.classList.add('active'); else b.classList.remove('active');
+      });
+    }
+
+    function abrirInfo(btn) {
+      document.querySelectorAll('.tab').forEach((b) => b.classList.remove('active'));
+      if (btn instanceof HTMLElement) btn.classList.add('active');
+      abrirPanel('Información', `
+        <div class="card">
+          <h3>App manual</h3>
+          <div class="muted">Esta versión está hecha para que cargues vos mismo los puntos exactos del PDF. No tiene barrios precargados.</div>
+        </div>
+        <div class="card">
+          <h3>Cómo usarla</h3>
+          <div class="muted">
+            1. Buscá una calle o dirección.<br>
+            2. Hacé zoom.<br>
+            3. Tocá el punto exacto del mapa.<br>
+            4. Elegí la categoría: Barrio o Finca.<br>
+            5. Guardalo con el nombre correcto del PDF.
+          </div>
+        </div>
+        <div class="card">
+          <h3>Botones</h3>
+          <div class="muted">
+            📍 te lleva a tu ubicación.<br>
+            ＋ abre el formulario para guardar manualmente.<br>
+            Lugares te muestra todo lo que ya guardaste.
+          </div>
+        </div>
+        <div class="card">
+          <h3>Borrar todo</h3>
+          <button class="save-btn danger-btn" onclick="borrarTodo()">Borrar todos los lugares</button>
+        </div>
+      `);
+    }
+
+    function mostrarLugares(btn) {
+      document.querySelectorAll('.tab').forEach((b) => b.classList.remove('active'));
+      if (btn instanceof HTMLElement) btn.classList.add('active');
+
+      const chips = `
+        <div class="chips">
+          <span class="chip ${filtroActual==='todos'?'active':''}" onclick="setFiltro('todos')">Todos</span>
+          <span class="chip ${filtroActual==='Barrio'?'active':''}" onclick="setFiltro('Barrio')">Barrios</span>
+          <span class="chip ${filtroActual==='Finca'?'active':''}" onclick="setFiltro('Finca')">Fincas</span>
+          <span class="chip ${filtroActual==='Casa'?'active':''}" onclick="setFiltro('Casa')">Casa</span>
+          <span class="chip ${filtroActual==='Trabajo'?'active':''}" onclick="setFiltro('Trabajo')">Trabajo</span>
+          <span class="chip ${filtroActual==='Otro'?'active':''}" onclick="setFiltro('Otro')">Otros</span>
+        </div>
+      `;
+
+      let filtrados = places;
+      if (filtroActual !== 'todos') {
+        filtrados = places.filter(p => p.category === filtroActual);
+      }
+
+      if (!filtrados.length) {
+        abrirPanel('Lugares guardados', chips + `
+          <div class="empty">
+            <div class="big">📭</div>
+            <div>No hay lugares cargados en esta categoría.</div>
+          </div>
+        `);
+        return;
+      }
+
+      const html = filtrados.map((place) => {
+        const color = CAT_COLORS[place.category] || CAT_COLORS["Otro"];
+        return `
+        <div class="place-item">
+          <div class="dot" style="background:${color}"></div>
+          <div class="place-main">
+            <strong>${escapeHtml(place.name)}</strong>
+            <small>${escapeHtml(place.category)} · ${place.lat}, ${place.lng}</small>
+          </div>
+          <button class="mini-btn go-btn" onclick="centrarLugar(${place.id})">Ir</button>
+          <button class="mini-btn del-btn" onclick="eliminarLugar(${place.id})">Borrar</button>
+        </div>`;
+      }).join('');
+
+      abrirPanel('Lugares guardados', chips + html);
+    }
+
+    function setFiltro(cat) {
+      filtroActual = cat;
+      mostrarLugares(document.querySelectorAll('.tab')[1]);
+    }
+
+    function prepararNuevoLugar() {
+      selectedLatLng = map.getCenter();
+      abrirFormularioLugar();
+    }
+
+    function abrirFormularioLugar() {
+      abrirPanel('Guardar lugar', `
+        <label class="field-label">Nombre</label>
+        <input id="placeName" class="input" placeholder="Ej: 21 de Septiembre, Finca Gómez..." />
+
+        <label class="field-label">Categoría</label>
+        <select id="placeCategory" class="select">
+          <option>Barrio</option>
+          <option>Finca</option>
+          <option>Casa</option>
+          <option>Trabajo</option>
+          <option>Cliente</option>
+          <option>Otro</option>
+        </select>
+
+        <label class="field-label">Coordenadas elegidas</label>
+        <input id="coordView" class="input" readonly value="${selectedLatLng ? selectedLatLng.lat.toFixed(6)+', '+selectedLatLng.lng.toFixed(6) : 'No seleccionado'}" />
+
+        <button class="save-btn" onclick="guardarLugar()">Guardar lugar</button>
+      `);
+    }
+
+    function guardarLugar() {
+      const name = document.getElementById('placeName').value.trim();
+      const category = document.getElementById('placeCategory').value;
+
+      if (!name) {
+        showToast('Escribí un nombre');
+        return;
+      }
+      if (!selectedLatLng) {
+        showToast('Primero elegí un punto en el mapa');
+        return;
+      }
+
+      const place = {
+        id: Date.now(),
+        name,
+        category,
+        lat: Number(selectedLatLng.lat.toFixed(6)),
+        lng: Number(selectedLatLng.lng.toFixed(6))
+      };
+
+      places.unshift(place);
+      savePlaces();
+      renderPlaceMarkers();
+      cerrarPanel();
+      showToast('Lugar guardado');
+    }
+
+    function eliminarLugar(id) {
+      places = places.filter((p) => p.id !== id);
+      savePlaces();
+      renderPlaceMarkers();
+      mostrarLugares(document.querySelectorAll('.tab')[1]);
+      showToast('Lugar eliminado');
+    }
+
+    function centrarLugar(id) {
+      const place = places.find((p) => p.id === id);
+      if (!place) return;
+      map.setView([place.lat, place.lng], 17);
+      if (markers[id]) markers[id].openPopup();
+      cerrarPanel();
+    }
+
+    function borrarTodo() {
+      if (!confirm('¿Seguro que querés borrar todos los lugares?')) return;
+      places = [];
+      savePlaces();
+      renderPlaceMarkers();
+      cerrarPanel();
+      showToast('Todo borrado');
+    }
+
+    function irAMiUbicacion() {
+      if (!navigator.geolocation) {
+        showToast('Tu celular no soporta ubicación');
+        return;
+      }
+      showToast('Buscando ubicación...');
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          map.setView([lat, lng], 16);
+
+          if (userMarker) userMarker.remove();
+          userMarker = L.marker([lat, lng], { icon: createColorIcon('#ef4444') }).addTo(map);
+          userMarker.bindPopup('Estás acá').openPopup();
+          showToast('Ubicación encontrada');
+        },
+        () => showToast('No se pudo obtener ubicación'),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    function buscarDireccion() {
+      const query = document.getElementById('searchInput').value.trim();
+      if (!query) {
+        showToast('Escribí algo para buscar');
+        return;
+      }
+      const fullQuery = `${query}, Rivadavia, Mendoza, Argentina`;
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullQuery)}&limit=1&countrycodes=ar`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data || !data.length) {
+            showToast('No encontré esa dirección');
+            return;
+          }
+
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+          map.setView([lat, lng], 17);
+          selectedLatLng = { lat, lng };
+
+          L.popup().setLatLng([lat, lng]).setContent(`<strong>${escapeHtml(query)}</strong>`).openOn(map);
+          showToast('Ubicación encontrada');
+        })
+        .catch(() => showToast('Error al buscar'));
+    }
+
+    function navegarA(lat, lng) {
+      window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`, '_blank');
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    window.onload = initMap;
+  </script>
+</body>
+</html>
